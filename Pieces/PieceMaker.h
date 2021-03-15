@@ -10,7 +10,7 @@
 
 class UTheGameInstance;
 struct FTable_Address;
-class APiece;
+class UPiece;
 struct FJoinUnit;
 
 
@@ -37,8 +37,8 @@ public:
 
 
 // FIND JOIN UNITS
-	FJoinUnit FindJoinUnit_Low(int32 TriStart, TArray<APiece*> HexArray);
-	FJoinUnit FindJoinUnit_High(int32 TriStart, TArray<APiece*> HexArray);
+	FJoinUnit FindJoinUnit_Low(int32 TriStart, TArray<UPiece*> HexArray);
+	FJoinUnit FindJoinUnit_High(int32 TriStart, TArray<UPiece*> HexArray);
 
 
 //CHANGE INFO

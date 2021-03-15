@@ -38,7 +38,7 @@ struct FPuzzleUnit : public FTableRowBase
 		int32 PuzzleGridWidth;
 
 	UPROPERTY()
-		TArray<APiece*> HomePiecesArray;
+		TArray<UPiece*> HomePiecesArray;
 
 	UPROPERTY()
 		TEnumAsByte<E_GridSize> GridSize;
@@ -47,10 +47,22 @@ struct FPuzzleUnit : public FTableRowBase
 		bool bIsBordered;
 
 	UPROPERTY()
-		UStaticMesh* GridStaticMesh;
+		TSoftObjectPtr<UStaticMesh> GridStaticMesh;
+
+
 
 	UPROPERTY()
 		UTexture* MuralTexture;
+	UPROPERTY()
+		UTexture* BorderTexture;
+	UPROPERTY()
+		UTexture* BorderMask;
+
+	//save storage
+	UPROPERTY()
+		FString MuralTexture_ID;
+
+
 
 	UPROPERTY()
 		FRoom_Address Room_Address;
@@ -71,6 +83,9 @@ struct FPuzzleUnit : public FTableRowBase
 
 
 
+	//for saved game
+	UPROPERTY()
+		TArray<int32> HomePiecesArray_ID;
 
 
 

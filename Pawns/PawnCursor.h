@@ -8,9 +8,11 @@
 #include "Talismans/Enums/E_Direction.h"						// for Direction
 #include "PawnCursor.generated.h"
 
-class AMeshPiece;
-class ACluster;
+class AActorPiece;
+class UCluster;
+class UPiece;
 class UHub;
+class UPaperSpriteComponent;
 
 UCLASS()
 class TALISMANS_API APawnCursor : public APawn
@@ -37,9 +39,13 @@ public:
 	
 	void CalculateLeftRight(float Value);
 	void CalculateUpDown(float Value);
-	void GrabRelease();
+	void D_Pad_Left();
+	void D_Pad_Right();
+
+	void GrabReleaseConfirm();
 	void Rotate();
-	void Flip();
+	void ToggleTransferSackMode();
+
 
 // CHANGE INFO
 
@@ -49,19 +55,24 @@ public:
 	void RunRadialChoiceModeChecks();
 	void ExitRadialChoiceMode();
 	TEnumAsByte<E_Direction> CombineCardinalDirections();
-	void HandlePickingUpCluster(ACluster* GrabbedCluster);
-	void HandleDroppingCluster(ACluster* DroppedCluster);
+	void HandlePickingUpCluster(UCluster* GrabbedCluster);
+	void HandleDroppingCluster(UCluster* DroppedCluster);
 	void ExitChecks();
 	void MoveToElement_Right();
 	void MoveToElement_Left();
 	void SendCursorToThisCoordinate(int32 col, int32 row, TEnumAsByte<E_Board> Board);
+	void ArmDisarmItemPiece(UPiece* ItemPiece);
 
 // MEMBERS - SETUP
 
 	UPROPERTY()
 		UHub* Hub;
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		USceneComponent* SceneCursor;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		UStaticMeshComponent* CursorMesh;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		UPaperSpriteComponent* TransferSack;
 
 
 // MEMBERS - CONTROL
@@ -70,6 +81,8 @@ public:
 		bool bHasPermissionToMove = true;
 	UPROPERTY()
 		bool bIsRadialChoiceMode = false;
+	UPROPERTY()
+		bool bIsTransferSackMode = false;
 	UPROPERTY()
 		bool bEndingRadialChoiceModeTrigger = false;
 	UPROPERTY()
@@ -80,6 +93,8 @@ public:
 		float MoveDelay = 0.16f;
 	UPROPERTY()
 		float UpDownValue;
+	UPROPERTY()
+		float LeftRightValue;
 	UPROPERTY()
 		TEnumAsByte<E_Direction> UpDown = d_NONE;
 	UPROPERTY()
@@ -95,7 +110,9 @@ public:
 // MEMBERS - DYNAMIC INFO
 
 	UPROPERTY()
-		TArray<ACluster*> InHand;
+		TArray<UCluster*> InHand;
+	UPROPERTY()
+		TArray<UCluster*> InSack;
 	UPROPERTY()
 		TEnumAsByte<E_Direction> ProposedDirection = d_NONE;
 	UPROPERTY()
@@ -103,9 +120,10 @@ public:
 	UPROPERTY()
 		FVector CurrentLocation;
 	UPROPERTY()
-		TArray<ACluster*> AllMovableClusters;
+		TArray<UCluster*> AllMovableClusters;
 	UPROPERTY()
-		ACluster* SelectedClusterPtr = nullptr;
-
+		UCluster* SelectedClusterPtr = nullptr;
+	UPROPERTY()
+		bool bSkipLeftRightTick = false;
 
 };

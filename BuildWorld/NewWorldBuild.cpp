@@ -8,14 +8,13 @@
 #include "Talismans/Puzzles/MuralManager.h"					// for MuralManager
 #include "Talismans/NewWorldBuild/RandomGridGeneration.h"	// for RandomGrid
 #include "Talismans/Pieces/PieceMaker.h"					// for PieceMaker
+#include "Talismans/Rooms/RoomNavigator.h"					// for RoomNavigator
 
 UNewWorldBuild::UNewWorldBuild()
 {
 	CreatePuzzleLetterLookupMap();
 
-	FindAllStaticMeshes();
-
-
+	FindAllGridStaticMeshes();
 
 }
 
@@ -25,8 +24,6 @@ void UNewWorldBuild::Setup(UTheGameInstance* _GameInstance)
 {
 	GameInstance = _GameInstance;
 	TempleSize = GameInstance->TempleSettings.TempleSize;
-	AmountOfPieces = GameInstance->TempleSettings.AmountOfPieces;
-	AmountOfTables = GameInstance->TempleSettings.AmountOfTables;
 }
 
 void UNewWorldBuild::CreatePuzzleLetterLookupMap()
@@ -254,13 +251,37 @@ void UNewWorldBuild::CreatePuzzleLetterLookupMap()
 
 }
 
-void UNewWorldBuild::FindAllStaticMeshes()
+void UNewWorldBuild::FindAllGridStaticMeshes()
 {
-	ConstructorHelpers::FObjectFinder<UStaticMesh> SM_Grid_7x3_Object(
-		TEXT("StaticMesh'/Game/Meshes/Grids/SM_grid_7x3.SM_grid_7x3'"));
-	if (SM_Grid_7x3_Object.Succeeded()) {
-		SM_Grid_7x3 = SM_Grid_7x3_Object.Object;
-	}
+	GridsMap.Emplace(sz_7x4, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_7x4.SM_grid_7x4'"));
+	GridsMap.Emplace(sz_7x3, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_7x3.SM_grid_7x3'"));
+	GridsMap.Emplace(sz_7x2, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_7x2.SM_grid_7x2'"));
+
+	GridsMap.Emplace(sz_6x4, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_6x4.SM_grid_6x4'"));
+	GridsMap.Emplace(sz_6x3, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_6x3.SM_grid_6x3'"));
+	GridsMap.Emplace(sz_6x2, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_6x2.SM_grid_6x2'"));
+
+	GridsMap.Emplace(sz_5x4, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_5x4.SM_grid_5x4'"));
+	GridsMap.Emplace(sz_5x3, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_5x3.SM_grid_5x3'"));
+	GridsMap.Emplace(sz_5x2, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_5x2.SM_grid_5x2'"));
+
+	GridsMap.Emplace(sz_4x4, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_4x4.SM_grid_4x4'"));
+	GridsMap.Emplace(sz_4x3, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_4x3.SM_grid_4x3'"));
+	GridsMap.Emplace(sz_4x2, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_4x2.SM_grid_4x2'"));
+
+	GridsMap.Emplace(sz_3x4, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_3x4.SM_grid_3x4'"));
+	GridsMap.Emplace(sz_3x3, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_3x3.SM_grid_3x3'"));
+	GridsMap.Emplace(sz_3x2, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_3x2.SM_grid_3x2'"));
+
+	GridsMap.Emplace(sz_2x4, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_2x4.SM_grid_2x4'"));
+	GridsMap.Emplace(sz_2x3, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_2x3.SM_grid_2x3'"));
+	GridsMap.Emplace(sz_2x2, FindAsset("StaticMesh'/Game/Meshes/Grids/SM_grid_2x2.SM_grid_2x2'"));
+}
+
+UStaticMesh* UNewWorldBuild::FindAsset(FString Name)
+{
+	ConstructorHelpers::FObjectFinder<UStaticMesh> Asset((TEXT("%s"), *Name));
+	return Asset.Object;
 }
 
 void UNewWorldBuild::CreateRoomLetterArrayForRandomRoomLetters()
@@ -293,10 +314,14 @@ bool UNewWorldBuild::bIsTablePlacementPossible(TEnumAsByte <E_RoomLetter> RoomLe
 	//condense
 	TMap<TEnumAsByte <E_RoomLetter>, FRoomUnit>& RoomMap = GameInstance->RoomMap;
 
-	//if these two adjacent squares are vacant
+	//if these four adjacent squares are vacant
 	if (RoomMap[RoomLetter].ColMap[Col].RowMap[Row].TotMap[1].TotemType == tVACANT) {
 		if (RoomMap[RoomLetter].ColMap[Col + 1].RowMap[Row].TotMap[1].TotemType == tVACANT) {
-			return true;
+			if (RoomMap[RoomLetter].ColMap[Col].RowMap[Row + 1].TotMap[1].TotemType == tVACANT) {
+				if (RoomMap[RoomLetter].ColMap[Col + 1].RowMap[Row + 1].TotMap[1].TotemType == tVACANT) {
+					return true;
+				}
+			}
 		}
 	}
 
@@ -314,14 +339,16 @@ void UNewWorldBuild::BuildANewWorld(UTheGameInstance* _GameInstance)
 	URandomGridGeneration* RandomGrid = NewObject<URandomGridGeneration>(this, URandomGridGeneration::StaticClass());
 
 	RandomGrid->CatchTheBuilder(this);
-	RandomGrid->BuildPuzzleSizeArray(AmountOfPieces);
+	RandomGrid->CatchTheGameInstance(_GameInstance);
+	RandomGrid->BuildAllPossibleGridArray();
+	RandomGrid->BuildPuzzleSizeArray();
 
-	AmountOfTables = PuzzleSizeArray.Num();
 
 //Build Rooms
 
 	Build_Rooms();
 	Build_TotemPoles();
+	Build_DoorInformation();
 
 	Build_Puzzles();
 	Set_PuzzleGridHeightAndWidths();
@@ -336,9 +363,10 @@ void UNewWorldBuild::BuildANewWorld(UTheGameInstance* _GameInstance)
 	Place_PuzzlesIntoRooms();
 
 
-	Populate_RoomsWithFloors();
-	Populate_RoomsWithFinale();
-	Populate_RoomsWithVessels();
+	Populate_FloorTotems();
+	Populate_FinaleTotems();
+	Populate_DoorTotems();
+	Populate_VesselTotems();
 
 //Build Pieces
 
@@ -361,11 +389,15 @@ void UNewWorldBuild::BuildANewWorld(UTheGameInstance* _GameInstance)
 		PieceMaker->PiecesWillStartInVessels();
 	}
 	//if start in grid
-	else {
+	else if (GameInstance->DebugSettings.WherePiecesWillStart == ONGRID) {
+
 		PieceMaker->PiecesWillStartInGrid();
 
 		//put pieces into containers
 		PieceMaker->PlacePiecesIntoRespectiveContainers();
+	}
+	else {
+		//shouldn't need
 	} 
 }
 
@@ -580,10 +612,286 @@ void UNewWorldBuild::Build_TotemPoles()
 	//UE_LOG(LogTemp, Warning, TEXT("should be 7: %i"), RoomMap[oC].ColMap[1].RowMap[1].TotMap.Num())
 } 
 
+void UNewWorldBuild::Build_DoorInformation()
+{
+	//condense
+	TMap<TEnumAsByte <E_RoomLetter>, FRoomUnit>& RoomMap = GameInstance->RoomMap;
+
+	if (TempleSize == GEN) {
+		//no doors
+	}
+	if (TempleSize == GENYA) {
+
+		for (auto& Room : RoomMap) {
+			
+			if (Room.Key == oA) {
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oB) {
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oC) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oD) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oE) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+			}
+			else if (Room.Key == oF) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+			}
+			else if (Room.Key == oG) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+			}
+		}
+	}
+	if (TempleSize == GENYATI) {
+		
+		for (auto& Room : RoomMap) {
+
+			if (Room.Key == oH) {
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oI) {
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oJ) {
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oK) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oL) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oM) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oN) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+			}
+			else if (Room.Key == oO) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == oP) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+			}
+			else if (Room.Key == oQ) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+			}
+			else if (Room.Key == oR) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+			}
+			else if (Room.Key == oS) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+			}
+			//middle rooms
+			else {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+		}
+	}
+	if (TempleSize == GENYATIUM) {
+
+		for (auto& Room : RoomMap) {
+
+			if (Room.Key == o1) {
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o2) {
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o3) {
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o4) {
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o5) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o6) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o7) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o8) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o9) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o10) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+			}
+			else if (Room.Key == o11) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o12) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+			}
+			else if (Room.Key == o13) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+			else if (Room.Key == o14) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+			}
+			else if (Room.Key == o15) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+			}
+			else if (Room.Key == o16) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+			}
+			else if (Room.Key == o17) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+			}
+			else if (Room.Key == o18) {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+			}
+			//middle rooms
+			else {
+				PlaceDoorAtThisPosition(Room.Key, dd_TopLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_TopRight);
+				PlaceDoorAtThisPosition(Room.Key, dd_Left);
+				PlaceDoorAtThisPosition(Room.Key, dd_Right);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotLeft);
+				PlaceDoorAtThisPosition(Room.Key, dd_BotRight);
+			}
+		}
+	}
+}
+
+void UNewWorldBuild::PlaceDoorAtThisPosition(TEnumAsByte<E_RoomLetter> RoomLetter, TEnumAsByte<E_DoorDirection> DoorDirection)
+{
+	//condense
+	TMap<TEnumAsByte <E_RoomLetter>, FRoomUnit>& RoomMap = GameInstance->RoomMap;
+
+	//build struct
+	RoomMap[RoomLetter].DoorLayout.Emplace(DoorDirection, FDoorInformation());
+
+	//condense
+	FDoorInformation& DoorInfo = RoomMap[RoomLetter].DoorLayout[DoorDirection];
+
+	//build appendages
+	DoorInfo.AppendageTri2 = FMath::RandRange(0, 1);
+	DoorInfo.AppendageTri3 = FMath::RandRange(0, 2);
+	DoorInfo.AppendageTri4 = FMath::RandRange(0, 1);
+	DoorInfo.AppendageTri5 = FMath::RandRange(0, 2);
+	DoorInfo.AppendageTri6 = FMath::RandRange(0, 1);
+
+	//get door destination
+	URoomNavigator* RoomNavigator = NewObject<URoomNavigator>(this, URoomNavigator::StaticClass());
+	DoorInfo.DoorDestination = RoomNavigator->DetermineTheNewRoomLetter(RoomLetter, DoorDirection);
+}
+
+
 
 //POPULATE ROOMS
 
-void UNewWorldBuild::Populate_RoomsWithFloors()
+void UNewWorldBuild::Populate_FloorTotems()
 {
 	//loop rooms
 	for (auto& Room : GameInstance->RoomMap) {
@@ -599,7 +907,7 @@ void UNewWorldBuild::Populate_RoomsWithFloors()
 	}
 }
 
-void UNewWorldBuild::Populate_RoomsWithFinale()
+void UNewWorldBuild::Populate_FinaleTotems()
 {
 	//loop relevant rows
 	for (int32 row = 1; row <= 4; row++) {
@@ -634,7 +942,203 @@ void UNewWorldBuild::Populate_RoomsWithFinale()
 	}
 }
 
-void UNewWorldBuild::Populate_RoomsWithVessels()
+void UNewWorldBuild::Populate_DoorTotems()
+{
+	//loop rooms
+	for (auto& Room : GameInstance->RoomMap) {
+		//loop layout
+		for (auto& DoorInfo : Room.Value.DoorLayout) {
+
+			//TopLeft
+			if (DoorInfo.Key == dd_TopLeft) {
+
+				//loop relevant rows
+				for (int32 row = 1; row <= 3; row++) {
+
+					//first row
+					if (row == 1) {
+
+						//loop relevant cols
+						for (int32 col = 6; col <= 13; col++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+					//next two rows
+					else {
+
+						//loop relevant cols
+						for (int32 col = 8; col <= 11; col++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+				}
+			}
+
+			//TopRight
+			if (DoorInfo.Key == dd_TopRight) {
+
+				//loop relevant rows
+				for (int32 row = 1; row <= 3; row++) {
+
+					//first row
+					if (row == 1) {
+
+						//loop relevant cols
+						for (int32 col = 28; col <= 35; col++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+					//next two rows
+					else {
+
+						//loop relevant cols
+						for (int32 col = 30; col <= 33; col++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+				}
+			}
+
+			//Left
+			if (DoorInfo.Key == dd_Left) {
+
+				//loop relevant cols
+				for (int32 col = 1; col <= 3; col++) {
+
+					//first col
+					if (col == 1) {
+
+						//loop relevant rows
+						for (int32 row = 7; row <= 14; row++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+					//next two cols
+					else {
+
+						//loop relevant rows
+						for (int32 row = 9; row <= 12; row++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+				}
+			}
+
+			//Right
+			if (DoorInfo.Key == dd_Right) {
+
+				//loop relevant cols
+				for (int32 col = 40; col >= 38; col--) {
+
+					//first col
+					if (col == 40) {
+
+						//loop relevant rows
+						for (int32 row = 7; row <= 14; row++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+					//next two cols
+					else {
+
+						//loop relevant rows
+						for (int32 row = 9; row <= 12; row++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+				}
+			}
+
+			//BotLeft
+			if (DoorInfo.Key == dd_BotLeft) {
+
+				//loop relevant rows
+				for (int32 row = 20; row >= 18; row--) {
+
+					//first row
+					if (row == 20) {
+
+						//loop relevant cols
+						for (int32 col = 6; col <= 13; col++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+					//next two rows
+					else {
+
+						//loop relevant cols
+						for (int32 col = 8; col <= 11; col++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+				}
+			}
+
+			//BotRight
+			if (DoorInfo.Key == dd_BotRight) {
+
+				//loop relevant rows
+				for (int32 row = 20; row >= 18; row--) {
+
+					//first row
+					if (row == 20) {
+
+						//loop relevant cols
+						for (int32 col = 28; col <= 35; col++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+					//next two rows
+					else {
+
+						//loop relevant cols
+						for (int32 col = 30; col <= 33; col++) {
+							//loop tots
+							for (int32 tot = 1; tot <= 5; tot++) {
+								GameInstance->RoomMap[Room.Key].ColMap[col].RowMap[row].TotMap[tot].TotemType = tDOOR;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void UNewWorldBuild::Populate_VesselTotems()
 {
 	//loop rooms
 	for (auto& Room : GameInstance->RoomMap) {
@@ -654,18 +1158,15 @@ void UNewWorldBuild::Populate_RoomsWithVessels()
 			//loop TotMap, minus floor
 			for (int32 tot = 0; tot <= 5; tot++) {
 
-				//nothing above junction
-				if (TotMap[tot].TotemType == tJUNCTION) {
-					break;
-				}
-
-				//nothing above puzzles
-				if (TotMap[tot].TotemType == tTABLE) {
-					break;
-				}
-
-				//nothing above puzzles
-				if (TotMap[tot].TotemType == tFINALE) {
+				//nothing above these items
+				if (
+					TotMap[tot].TotemType == tJUNCTION	||
+					TotMap[tot].TotemType == tTABLE		||
+					TotMap[tot].TotemType == tFINALE	||
+					TotMap[tot].TotemType == tDOOR
+					) 
+				{
+					//this will break early instead of going up totem
 					break;
 				}
 
@@ -711,6 +1212,8 @@ void UNewWorldBuild::Build_Puzzles()
 	PuzzleMap[pJUNCTION].bIsDiscovered = true;
 	GameInstance->DiscoveredPuzzlesArr.Emplace(pJUNCTION);
 
+	UE_LOG(LogTemp, Warning, TEXT("puzzle size array = %i"), PuzzleSizeArray.Num())
+
 	//build each puzzle
 	for (int32 i = 0; i < PuzzleSizeArray.Num(); i++) {
 
@@ -746,7 +1249,7 @@ void UNewWorldBuild::Build_PuzzleGridMaps()
 
 			FColHex NewColHex = FColHex();
 
-			//if odd, 2,4,6, etc.
+			//if odd, rows should be 2,4,6, etc.
 			if (col % 2 == 1) {
 
 				//build RowHexes, start at 2, iterate by 2
@@ -782,7 +1285,7 @@ void UNewWorldBuild::Build_PuzzleGridMaps()
 				}
 			}
 
-			//if even, 1,3,5, etc.
+			//if even, rows should be 1,3,5, etc.
 			if (col % 2 == 0) {
 
 				//build RowHexes, start at 1, iterate by 2
@@ -824,9 +1327,7 @@ void UNewWorldBuild::Build_PuzzleGridMaps()
 	}
 
 
-	UE_LOG(LogTemp, Warning, TEXT("Cols, should be 7: %i"), PuzzleMap[p001].ColMapGrid.Num())
-	UE_LOG(LogTemp, Warning, TEXT("Rows, should be 3: %i"), PuzzleMap[p001].ColMapGrid[1].RowMap.Num())
-	UE_LOG(LogTemp, Warning, TEXT("Tris, should be 6: %i"), PuzzleMap[p001].ColMapGrid[1].RowMap[2].TriMap.Num())
+	
 }
 
 void UNewWorldBuild::Build_PuzzleBinMaps()
@@ -846,9 +1347,9 @@ void UNewWorldBuild::Build_PuzzleBinMaps()
 			ColAmount = 25; //24 columns
 			RowAmount = 24; //12 rows
 		}
-		//if regular puzzle
+		//if standard puzzle
 		else {
-			ColAmount = 13; //12 columns
+			ColAmount = 15; //14 columns
 			RowAmount = 12; //6 rows
 		}
 
@@ -905,10 +1406,6 @@ void UNewWorldBuild::Build_PuzzleBinMaps()
 			Puzzle.Value.ColMapBin.Emplace(col, NewColHex);
 		}
 	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Cols, should be 12: %i"), PuzzleMap[p001].ColMapBin.Num())
-	UE_LOG(LogTemp, Warning, TEXT("Rows, should be 6: %i"), PuzzleMap[p001].ColMapBin[2].RowMap.Num())
-	UE_LOG(LogTemp, Warning, TEXT("Tris, should be 6: %i"), PuzzleMap[p001].ColMapBin[2].RowMap[1].TriMap.Num())
 }
 
 // SET FURTHER
@@ -918,10 +1415,84 @@ void UNewWorldBuild::Set_PuzzleGridHeightAndWidths()
 	//loop puzzles
 	for (auto& Puzzle : GameInstance->PuzzleMap) {
 
-		if (Puzzle.Value.GridSize == sz_7x3) {
+		if (Puzzle.Value.GridSize == sz_7x4) {
+			Puzzle.Value.PuzzleGridWidth = 7;
+			Puzzle.Value.PuzzleGridHeight = 4;
+		}
+		else if (Puzzle.Value.GridSize == sz_7x3) {
 			Puzzle.Value.PuzzleGridWidth = 7;
 			Puzzle.Value.PuzzleGridHeight = 3;
 		}
+		else if (Puzzle.Value.GridSize == sz_7x2) {
+			Puzzle.Value.PuzzleGridWidth = 7;
+			Puzzle.Value.PuzzleGridHeight = 2;
+		}
+
+		else if (Puzzle.Value.GridSize == sz_6x4) {
+			Puzzle.Value.PuzzleGridWidth = 6;
+			Puzzle.Value.PuzzleGridHeight = 4;
+		}
+		else if (Puzzle.Value.GridSize == sz_6x3) {
+			Puzzle.Value.PuzzleGridWidth = 6;
+			Puzzle.Value.PuzzleGridHeight = 3;
+		}
+		else if (Puzzle.Value.GridSize == sz_6x2) {
+			Puzzle.Value.PuzzleGridWidth = 6;
+			Puzzle.Value.PuzzleGridHeight = 2;
+		}
+
+		else if (Puzzle.Value.GridSize == sz_5x4) {
+			Puzzle.Value.PuzzleGridWidth = 5;
+			Puzzle.Value.PuzzleGridHeight = 4;
+		}
+		else if (Puzzle.Value.GridSize == sz_5x3) {
+			Puzzle.Value.PuzzleGridWidth = 5;
+			Puzzle.Value.PuzzleGridHeight = 3;
+		}
+		else if (Puzzle.Value.GridSize == sz_5x2) {
+			Puzzle.Value.PuzzleGridWidth = 5;
+			Puzzle.Value.PuzzleGridHeight = 2;
+		}
+
+		else if (Puzzle.Value.GridSize == sz_4x4) {
+			Puzzle.Value.PuzzleGridWidth = 4;
+			Puzzle.Value.PuzzleGridHeight = 4;
+		}
+		else if (Puzzle.Value.GridSize == sz_4x3) {
+			Puzzle.Value.PuzzleGridWidth = 4;
+			Puzzle.Value.PuzzleGridHeight = 3;
+		}
+		else if (Puzzle.Value.GridSize == sz_4x2) {
+			Puzzle.Value.PuzzleGridWidth = 4;
+			Puzzle.Value.PuzzleGridHeight = 2;
+		}
+
+		else if (Puzzle.Value.GridSize == sz_3x4) {
+			Puzzle.Value.PuzzleGridWidth = 3;
+			Puzzle.Value.PuzzleGridHeight = 4;
+		}
+		else if (Puzzle.Value.GridSize == sz_3x3) {
+			Puzzle.Value.PuzzleGridWidth = 3;
+			Puzzle.Value.PuzzleGridHeight = 3;
+		}
+		else if (Puzzle.Value.GridSize == sz_3x2) {
+			Puzzle.Value.PuzzleGridWidth = 3;
+			Puzzle.Value.PuzzleGridHeight = 2;
+		}
+
+		else if (Puzzle.Value.GridSize == sz_2x4) {
+			Puzzle.Value.PuzzleGridWidth = 2;
+			Puzzle.Value.PuzzleGridHeight = 4;
+		}
+		else if (Puzzle.Value.GridSize == sz_2x3) {
+			Puzzle.Value.PuzzleGridWidth = 2;
+			Puzzle.Value.PuzzleGridHeight = 3;
+		}
+		else if (Puzzle.Value.GridSize == sz_2x2) {
+			Puzzle.Value.PuzzleGridWidth = 2;
+			Puzzle.Value.PuzzleGridHeight = 2;
+		}
+
 	}
 }
 
@@ -930,9 +1501,8 @@ void UNewWorldBuild::Set_GridStaticMeshes()
 	//loop puzzles
 	for (auto& Puzzle : GameInstance->PuzzleMap) {
 
-		if (Puzzle.Value.GridSize == sz_7x3) {
-			Puzzle.Value.GridStaticMesh = SM_Grid_7x3;
-		}
+		//fetch mesh for gridmap
+		Puzzle.Value.GridStaticMesh = GridsMap[Puzzle.Value.GridSize];
 	}
 }
 
@@ -941,16 +1511,30 @@ void UNewWorldBuild::Set_MuralTextures()
 	UMuralManager* MuralManager = NewObject<UMuralManager>(GameInstance, UMuralManager::StaticClass());
 
 	//loop puzzles
-	for (auto& Puzzle : GameInstance->PuzzleMap) {
-		//set texture
-		Puzzle.Value.MuralTexture = MuralManager->GetProperTexture(Puzzle.Value.GridSize, GameInstance->DebugSettings.bUseDebugTexture);
+	for (auto& MapObject : GameInstance->PuzzleMap) {
+
+		//condense
+		FPuzzleUnit* Puzzle = &MapObject.Value;
+
+		//set border pointers
+		Puzzle->BorderTexture = MuralManager->GetProperBorderTexture(Puzzle->GridSize);
+		Puzzle->BorderMask = MuralManager->GetProperBorderMask(Puzzle->GridSize);
+
+		//set mural info
+		Puzzle->MuralTexture_ID = MuralManager->GetProperTexture_ID(Puzzle->GridSize, GameInstance->DebugSettings.bUseDebugTexture);
+		Puzzle->MuralTexture = MuralManager->GetProperTexture(Puzzle->MuralTexture_ID);
 	}
 }
 
 void UNewWorldBuild::Set_BordersOnMurals()
 {
 	//store border percentage
-	float b_percentage = GameInstance->GameplaySettings.PercentageOfPuzzlesWithBorders;
+	float b_percentage = GameInstance->TempleSettings.PercentageOfPuzzlesWithBorders;
+
+	//debug setting
+	if (GameInstance->DebugSettings.bAllBorders == true) {
+		b_percentage = 1.f;
+	}
 
 	//total number of puzzles, convert to float
 	float total = float(GameInstance->PuzzleMap.Num());
@@ -994,6 +1578,7 @@ void UNewWorldBuild::Place_PuzzlesIntoRooms()
 	}
 
 	//PUT JUNCTION TABLE DOWN
+
 		//origin spot
 		RoomMap[oD].ColMap[19].RowMap[9].TotMap[1].bIsOrigin = true;
 
@@ -1008,7 +1593,6 @@ void UNewWorldBuild::Place_PuzzlesIntoRooms()
 				if (col == 23 && (row == 9 || row == 12)) {
 					continue;
 				}
-
 
 				RoomMap[oD].ColMap[col].RowMap[row].TotMap[1].TotemType = tJUNCTION;
 				RoomMap[oD].ColMap[col].RowMap[row].TotMap[1].PuzzleLetter = pJUNCTION;
@@ -1041,13 +1625,17 @@ void UNewWorldBuild::Place_PuzzlesIntoRooms()
 				PuzzlesToPlaceArray.RemoveAt(RandIndex);
 	
 				//origin spot
-				RoomMap[oD].ColMap[col].RowMap[row].TotMap[1].TotemType = tTABLE;
-				RoomMap[oD].ColMap[col].RowMap[row].TotMap[1].PuzzleLetter = PuzzleLetter;
 				RoomMap[oD].ColMap[col].RowMap[row].TotMap[1].bIsOrigin = true;
 	
-				//adjacent spot
+				//adjacent spots
+				RoomMap[oD].ColMap[col].RowMap[row].TotMap[1].TotemType = tTABLE;
+				RoomMap[oD].ColMap[col].RowMap[row].TotMap[1].PuzzleLetter = PuzzleLetter;
 				RoomMap[oD].ColMap[col + 1].RowMap[row].TotMap[1].TotemType = tTABLE;
 				RoomMap[oD].ColMap[col + 1].RowMap[row].TotMap[1].PuzzleLetter = PuzzleLetter;
+				RoomMap[oD].ColMap[col].RowMap[row + 1].TotMap[1].TotemType = tTABLE;
+				RoomMap[oD].ColMap[col].RowMap[row + 1].TotMap[1].PuzzleLetter = PuzzleLetter;
+				RoomMap[oD].ColMap[col + 1].RowMap[row + 1].TotMap[1].TotemType = tTABLE;
+				RoomMap[oD].ColMap[col + 1].RowMap[row + 1].TotMap[1].PuzzleLetter = PuzzleLetter;
 
 				//change puzzle info Room_Address
 				PuzzleMap[PuzzleLetter].Room_Address.RoomLetter = oD;
@@ -1083,13 +1671,17 @@ void UNewWorldBuild::Place_PuzzlesIntoRooms()
 				PuzzlesToPlaceArray.RemoveAt(RandIndex);
 
 				//origin spot
-				RoomMap[RoomLetter].ColMap[col].RowMap[row].TotMap[1].TotemType = tTABLE;
-				RoomMap[RoomLetter].ColMap[col].RowMap[row].TotMap[1].PuzzleLetter = PuzzleLetter;
 				RoomMap[RoomLetter].ColMap[col].RowMap[row].TotMap[1].bIsOrigin = true;
 
-				//adjacent spot
+				//adjacent spots
+				RoomMap[RoomLetter].ColMap[col].RowMap[row].TotMap[1].TotemType = tTABLE;
+				RoomMap[RoomLetter].ColMap[col].RowMap[row].TotMap[1].PuzzleLetter = PuzzleLetter;
 				RoomMap[RoomLetter].ColMap[col + 1].RowMap[row].TotMap[1].TotemType = tTABLE;
 				RoomMap[RoomLetter].ColMap[col + 1].RowMap[row].TotMap[1].PuzzleLetter = PuzzleLetter;
+				RoomMap[RoomLetter].ColMap[col].RowMap[row + 1].TotMap[1].TotemType = tTABLE;
+				RoomMap[RoomLetter].ColMap[col].RowMap[row + 1].TotMap[1].PuzzleLetter = PuzzleLetter;
+				RoomMap[RoomLetter].ColMap[col + 1].RowMap[row + 1].TotMap[1].TotemType = tTABLE;
+				RoomMap[RoomLetter].ColMap[col + 1].RowMap[row + 1].TotMap[1].PuzzleLetter = PuzzleLetter;
 
 				//change puzzle info Room_Address
 				PuzzleMap[PuzzleLetter].Room_Address.RoomLetter = RoomLetter;

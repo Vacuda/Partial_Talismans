@@ -5,14 +5,14 @@
 #include "Talismans/Structs/FTable_Address.h"				// for FTable_Address
 
 // Sets default values
-APiece::APiece()
+UPiece::UPiece()
 {
  	
 
 }
 
 
-bool APiece::IsAtHome()
+bool UPiece::IsAtHome()
 {
     if (Table_Address.PuzzleLetter != HomeTable_Address.PuzzleLetter) {
         UE_LOG(LogTemp, Warning, TEXT(" Puz FALSE"))

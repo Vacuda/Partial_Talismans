@@ -9,6 +9,7 @@
 #include "Talismans/Enums/E_PuzzleLetter.h"				// for PuzzleLetter
 #include "Talismans/Enums/E_GridSize.h"					// for GridSize
 #include "Talismans/Enums/E_VesselType.h"				// for VesselType
+#include "Talismans/Enums/E_DoorDirection.h"			// for DoorDirection
 #include "NewWorldBuild.generated.h"
 
 class UTheGameInstance;
@@ -24,7 +25,8 @@ public:
 
 //SETUP
 	void CreatePuzzleLetterLookupMap();
-	void FindAllStaticMeshes();
+	void FindAllGridStaticMeshes();
+	UStaticMesh* FindAsset(FString Name);
 	void Setup(UTheGameInstance* _GameInstance);
 
 //FUNCTIONALITY
@@ -34,6 +36,8 @@ public:
 
 	void Build_Rooms();
 	void Build_TotemPoles();
+	void Build_DoorInformation();
+	void PlaceDoorAtThisPosition(TEnumAsByte<E_RoomLetter> RoomLetter, TEnumAsByte<E_DoorDirection> DoorDirection);
 
 	void Build_Puzzles();
 	void Set_PuzzleGridHeightAndWidths();
@@ -47,9 +51,10 @@ public:
 	void CreateRoomLetterArrayForRandomRoomLetters();
 	void Place_PuzzlesIntoRooms();
 
-	void Populate_RoomsWithFloors();
-	void Populate_RoomsWithFinale();
-	void Populate_RoomsWithVessels();
+	void Populate_FloorTotems();
+	void Populate_FinaleTotems();
+	void Populate_DoorTotems();
+	void Populate_VesselTotems();
 	TEnumAsByte<E_VesselType> GetRandomVessel();
 
 	bool bIsTablePlacementPossible(
@@ -61,10 +66,6 @@ public:
 	UPROPERTY()
 		TEnumAsByte <E_TempleSize> TempleSize;
 	UPROPERTY()
-		int32 AmountOfPieces;
-	UPROPERTY()
-		int32 AmountOfTables;
-	UPROPERTY()
 		UTheGameInstance* GameInstance;
 	UPROPERTY()
 		TMap<int32, TEnumAsByte<E_PuzzleLetter>> PuzzleLetterLookupMap;
@@ -72,11 +73,9 @@ public:
 		TArray<TEnumAsByte<E_RoomLetter>> RoomLetterArray;
 	UPROPERTY()
 		TArray<TEnumAsByte <E_GridSize>> PuzzleSizeArray;
-
-//MEMBERS - STATICMESHES
-
 	UPROPERTY()
-		UStaticMesh* SM_Grid_7x3;
+		TMap<TEnumAsByte<E_GridSize>, TSoftObjectPtr<UStaticMesh>> GridsMap;
+
 		
 
 

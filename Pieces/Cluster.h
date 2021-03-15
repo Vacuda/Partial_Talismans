@@ -8,17 +8,17 @@
 #include "Talismans/Enums/E_PieceState.h"						// for PieceState
 #include "Cluster.generated.h"
 
-class APiece;
-class AMeshCluster;
+class UPiece;
+class AActorCluster;
 
 UCLASS()
-class TALISMANS_API ACluster : public AActor
+class TALISMANS_API UCluster : public UObject
 {
 	GENERATED_BODY()
 
 public:
 
-	ACluster();
+	UCluster();
 
 //SETUP
 
@@ -26,15 +26,27 @@ public:
 //MEMBERS
 
 	UPROPERTY()
+		int32 cID;
+
+	UPROPERTY()
 		FTable_Address Table_Address;
 	UPROPERTY()
-		TArray<APiece*> HeldPieces;
+		TArray<UPiece*> HeldPieces;
 	UPROPERTY()
-		AMeshCluster* MeshClusterPtr;
+		AActorCluster* ActorClusterPtr;
 	UPROPERTY()
 		FTable_Address PickedUpAddress;
 
 	UPROPERTY()
 		TEnumAsByte <E_PieceState> State;
+
+
+
+
+
+
+	//stored to repopulate HeldPieces
+	UPROPERTY()
+		TArray<int32> HeldPieces_ID;
 
 };

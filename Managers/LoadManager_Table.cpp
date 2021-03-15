@@ -8,11 +8,9 @@
 #include "Talismans/Admin/TheGameInstance.h"				// for GameInstance
 #include "Talismans/Pawns/PawnCursor.h"						// for PawnCursor
 #include "Talismans/TableNavigation/Animator.h"				// for Animator
-#include "Talismans/TableNavigation/BinArbiter.h"			// for BinArbiter
-#include "Talismans/TableNavigation/GridArbiter.h"			// for GridArbiter
+#include "Talismans/TableNavigation/BoardArbiter.h"			// for BoardArbiter
 #include "Talismans/TableNavigation/PieceArbiter.h"			// for PieceArbiter
 #include "Talismans/TableNavigation/RackArbiter.h"			// for RackArbiter
-#include "Talismans/TableNavigation/TableNavigator.h"		// for Navigator
 #include "Talismans/Pieces/MeshPieceMaker.h"				// for MeshPieceMaker
 #include "Talismans/Levels/PuzzleLevel.h"					// for PuzzleLevel
 #include "Talismans/Controllers/ThePlayerController.h"		// for ThePlayerController
@@ -35,7 +33,6 @@ void ULoadManager_Table::RunLoadManager()
 	FindTheGameInstance();
 	FindThePawnCursor();
 	FindTheBinMesh();
-	FindTheGridMesh();
 	FindTheTableLightMaterial();
 	FindThePuzzleGridHeightAndWidth();
 	FindTheStartingTable_Address();
@@ -43,13 +40,14 @@ void ULoadManager_Table::RunLoadManager()
 	SendTheHubToEveryone();
 
 	//everything should be connected
+	Hub->MeshPieceMaker->SpawnProperGridMesh();
 	Hub->PawnCursor->SetStartPosition();
 	Hub->Animator->SetStartCameraPosition();
-	Hub->MeshPieceMaker->SpawnGridMeshPieces();
-	Hub->MeshPieceMaker->SpawnBinMeshPieces();
-	Hub->RackArbiter->SpawnRackAndPortraits(); 
+	Hub->MeshPieceMaker->SpawnActorPieces();
+	Hub->RackArbiter->SpawnRackAndPortraits();
+	Hub->RackArbiter->SetRackPositionToRackLevel();
 
-	//@@@@ probably set Bin Orientation here
+	
 
 
 	
@@ -71,15 +69,11 @@ void ULoadManager_Table::CreateHub()
 
 void ULoadManager_Table::MakeNewObjects()
 {
-	Hub->BinArbiter = NewObject<UBinArbiter>(Hub, UBinArbiter::StaticClass());
-
-	Hub->GridArbiter = NewObject<UGridArbiter>(Hub, UGridArbiter::StaticClass());
+	Hub->BoardArbiter = NewObject<UBoardArbiter>(Hub, UBoardArbiter::StaticClass());
 
 	Hub->PieceArbiter = NewObject<UPieceArbiter>(Hub, UPieceArbiter::StaticClass());
 
 	Hub->RackArbiter = NewObject<URackArbiter>(Hub, URackArbiter::StaticClass());
-
-	Hub->Navigator = NewObject<UTableNavigator>(Hub, UTableNavigator::StaticClass());
 
 	Hub->MeshPieceMaker = NewObject<UMeshPieceMaker>(Hub, UMeshPieceMaker::StaticClass());
 
@@ -116,18 +110,6 @@ void ULoadManager_Table::FindTheBinMesh()
 	if (AllActorsWithTagArray.Num() != 0) {
 		AActor* BinActor = AllActorsWithTagArray[0];
 		Hub->BinMesh = BinActor->FindComponentByClass<UStaticMeshComponent>();
-	}
-}
-
-void ULoadManager_Table::FindTheGridMesh()
-{
-	TArray<AActor*> AllActorsWithTagArray;
-	UGameplayStatics::GetAllActorsWithTag(GetWorld(), "Grid", AllActorsWithTagArray);
-
-	//safety check
-	if (AllActorsWithTagArray.Num() != 0) {
-		AActor* GridActor = AllActorsWithTagArray[0];
-		Hub->GridMesh = GridActor->FindComponentByClass<UStaticMeshComponent>();
 	}
 }
 
@@ -170,8 +152,8 @@ void ULoadManager_Table::FindTheStartingTable_Address()
 	if (Puzzle.ExitTable_Address.Col == 0) {
 		Hub->StartingTable_Address.Board = GRID;
 		Hub->StartingTable_Address.PuzzleLetter = PuzzleLetter;
-		Hub->StartingTable_Address.Col = 5;
-		Hub->StartingTable_Address.Row = 4;
+		Hub->StartingTable_Address.Col = 2;
+		Hub->StartingTable_Address.Row = 3;
 		Hub->StartingTable_Address.Tri = 1;
 	}
 	else {
@@ -188,14 +170,10 @@ void ULoadManager_Table::SendTheHubToEveryone()
 	Hub->PawnCursor->CatchTheHub(Hub);
 	Hub->Controller->CatchTheHub(Hub);
 	Hub->Animator->CatchTheHub(Hub);
-	Hub->BinArbiter->CatchTheHub(Hub);
-	Hub->GridArbiter->CatchTheHub(Hub);
+	Hub->BoardArbiter->CatchTheHub(Hub);
 	Hub->PieceArbiter->CatchTheHub(Hub);
 	Hub->RackArbiter->CatchTheHub(Hub);
-	Hub->Navigator->CatchTheHub(Hub);
 	Hub->MeshPieceMaker->CatchTheHub(Hub);
-
-
 
 }
 

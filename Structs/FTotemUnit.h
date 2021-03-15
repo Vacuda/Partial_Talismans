@@ -10,7 +10,7 @@
 #include "FTotemUnit.generated.h"
 
 
-class APiece;
+class UPiece;
 
 
 USTRUCT()
@@ -34,6 +34,6 @@ struct FTotemUnit
 		TEnumAsByte <E_VesselType> VesselType = v_NONE;
 
 	UPROPERTY()
-		TArray<APiece*> VesselPiecesArr;
+		TArray<int32> Vessel_Piece_IDArray;
 
 };

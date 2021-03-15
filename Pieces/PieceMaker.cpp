@@ -4,7 +4,7 @@
 #include "PieceMaker.h"
 
 #include "Talismans/Talismans.h"                                // for AJoinUnitCheck
-#include "Talismans/Pieces/Piece.h"                             // for APiece
+#include "Talismans/Pieces/Piece.h"                             // for UPiece
 #include "Talismans/Admin/TheGameInstance.h"                    // for UTheGameInstance
 #include "Talismans/Enums/E_PuzzleLetter.h"                     // for PuzzleLetter
 #include "Talismans/Enums/E_JoinSite.h"                         // for JoinSite
@@ -100,7 +100,7 @@ TEnumAsByte <E_Segment> UPieceMaker::GetSegment(int32 SegmentCount)
 
 //FIND JOIN UNITS
 
-FJoinUnit UPieceMaker::FindJoinUnit_Low(int32 TriStart, TArray<APiece*> HexArray)
+FJoinUnit UPieceMaker::FindJoinUnit_Low(int32 TriStart, TArray<UPiece*> HexArray)
 {
     FJoinUnit JoinUnit = FJoinUnit();
 
@@ -122,7 +122,7 @@ FJoinUnit UPieceMaker::FindJoinUnit_Low(int32 TriStart, TArray<APiece*> HexArray
 
             //match
             if (Piece->HomeTable_Address.Tri == TriRunner) {
-                JoinUnit.PiecePtr = Piece;
+                JoinUnit.Piece_ID = Piece->pID;
                 JoinUnit.Segment = GetSegment(SegmentCount);
                 return JoinUnit;
             }
@@ -146,7 +146,7 @@ FJoinUnit UPieceMaker::FindJoinUnit_Low(int32 TriStart, TArray<APiece*> HexArray
     return JoinUnit;
 }
 
-FJoinUnit UPieceMaker::FindJoinUnit_High(int32 TriStart, TArray<APiece*> HexArray)
+FJoinUnit UPieceMaker::FindJoinUnit_High(int32 TriStart, TArray<UPiece*> HexArray)
 {
     FJoinUnit JoinUnit = FJoinUnit();
 
@@ -162,7 +162,7 @@ FJoinUnit UPieceMaker::FindJoinUnit_High(int32 TriStart, TArray<APiece*> HexArra
     for (auto& Piece : HexArray) {
         //match
         if (Piece->HomeTable_Address.Tri == TriStart) {
-            JoinUnit.PiecePtr = Piece;
+            JoinUnit.Piece_ID = Piece->pID;
             return JoinUnit;
         }
     }
@@ -177,12 +177,13 @@ FJoinUnit UPieceMaker::FindJoinUnit_High(int32 TriStart, TArray<APiece*> HexArra
 void UPieceMaker::PlacePiecesIntoRespectiveContainers()
 {
 
-    UE_LOG(LogTemp, Warning, TEXT("Total Pieces: %i"), GameInstance->AllPiecesArr.Num())
+    UE_LOG(LogTemp, Warning, TEXT("Total Pieces: %i"), GameInstance->AllPiecesMap.Num())
 
     //loop all pieces
-    for (APiece* Piece : GameInstance->AllPiecesArr) {
+    for (auto& MapObject : GameInstance->AllPiecesMap) {
 
         //condense
+        UPiece* Piece = MapObject.Value;
         TEnumAsByte <E_PuzzleLetter> PuzzleLetter = Piece->Table_Address.PuzzleLetter;
         FPuzzleUnit& Puzzle = GameInstance->PuzzleMap[PuzzleLetter];
         int32 col = Piece->Table_Address.Col;
@@ -198,6 +199,9 @@ void UPieceMaker::PlacePiecesIntoRespectiveContainers()
             //iterate tricount times
             for (int32 i = 1; i <= tricount; i++) {
 
+                UE_LOG(LogTemp, Warning, TEXT("address: %i-%i, tri: %i"), col, row, tri)
+                UE_LOG(LogTemp, Warning, TEXT("%i x %i"), Puzzle.PuzzleGridWidth, Puzzle.PuzzleGridHeight)
+
                 //ref variable
                 FTriangleUnit& TargetTri = Puzzle.ColMapGrid[col].RowMap[row].TriMap[tri];
                   
@@ -207,6 +211,7 @@ void UPieceMaker::PlacePiecesIntoRespectiveContainers()
                 
                 TargetTri.bIsFilled = true;
                 TargetTri.PiecePtr = Piece;
+                TargetTri.Piece_ID = Piece->pID;
                 TargetTri.Segment = GetSegment(i);
 
                 //iterate tri
@@ -228,7 +233,8 @@ void UPieceMaker::PlacePiecesIntoRespectiveContainers()
             //iterate tricount times
             for (int32 i = 1; i <= tricount; i++) {
 
-                UE_LOG(LogTemp, Warning, TEXT("Col: %i, Row: %i, Tri: %i"), col, row, tri)
+                UE_LOG(LogTemp, Warning, TEXT("address: %i-%i, tri: %i"), col, row, tri)
+                UE_LOG(LogTemp, Warning, TEXT("%i x %i"), Puzzle.PuzzleGridWidth, Puzzle.PuzzleGridHeight)
 
                 //ref variable
                 FTriangleUnit& TargetTri = Puzzle.ColMapBin[col].RowMap[row].TriMap[tri];
@@ -257,7 +263,11 @@ void UPieceMaker::PiecesWillStartInBin()
 {
     if (GameInstance->DebugSettings.bStartInJunction == true) {
         //loop all pieces
-        for (auto& Piece : GameInstance->AllPiecesArr) {
+        for (auto& MapObject : GameInstance->AllPiecesMap) {
+
+            //condense
+            UPiece* Piece = MapObject.Value;
+
             Piece->Table_Address.PuzzleLetter = pJUNCTION;
             Piece->Table_Address.Board = BIN;
             Piece->ClusterPtr->Table_Address.PuzzleLetter = pJUNCTION;
@@ -266,7 +276,11 @@ void UPieceMaker::PiecesWillStartInBin()
     }
     else {
         //loop all pieces
-        for (auto& Piece : GameInstance->AllPiecesArr) {
+        for (auto& MapObject : GameInstance->AllPiecesMap) {
+
+            //condense
+            UPiece* Piece = MapObject.Value;
+
             Piece->Table_Address.PuzzleLetter = Piece->HomeTable_Address.PuzzleLetter;
             Piece->Table_Address.Board = BIN;
             Piece->ClusterPtr->Table_Address.PuzzleLetter = Piece->HomeTable_Address.PuzzleLetter;
@@ -282,7 +296,10 @@ void UPieceMaker::PiecesWillStartInBin()
 
 void UPieceMaker::PiecesWillStartInGrid()
 {
-    for (auto& Piece : GameInstance->AllPiecesArr) {
+    for (auto& MapObject : GameInstance->AllPiecesMap) {
+
+        //condense
+        UPiece* Piece = MapObject.Value;
 
         Piece->Table_Address.PuzzleLetter = Piece->HomeTable_Address.PuzzleLetter;
         Piece->Table_Address.Board = GRID;
@@ -309,7 +326,10 @@ void UPieceMaker::PiecesWillStartInVessels()
     }
 
     //loop all pieces
-    for (auto& Piece : GameInstance->AllPiecesArr) {
+    for (auto& MapObject : GameInstance->AllPiecesMap) {
+
+        //condense
+        UPiece* Piece = MapObject.Value;
 
         //initialize trigger
         bool bPiecePlaced = false;
@@ -330,7 +350,7 @@ void UPieceMaker::PiecesWillStartInVessels()
             if (Tot.TotemType == tVESSEL) {
 
                 //add piece into vessel
-                Tot.VesselPiecesArr.Emplace(Piece);
+                Tot.Vessel_Piece_IDArray.Emplace(Piece->pID);
 
                 //change piece room address
                 Piece->Room_Address.RoomLetter = AllRoomsArr[RandRoom];
@@ -359,7 +379,7 @@ void UPieceMaker::RandomizeBinPlacement()
 
         //condense
         TEnumAsByte <E_PuzzleLetter> PuzzleLetter = Puzzle.Key;
-        TArray<APiece*>& AllPiecesArr = GameInstance->AllPiecesArr;
+        TMap<int32, UPiece*>& AllPiecesMap = GameInstance->AllPiecesMap;
 
         //Determine RowAmount
         int32 RowAmount;
@@ -370,16 +390,21 @@ void UPieceMaker::RandomizeBinPlacement()
             RowAmount = 13;
         }
 
-        //indexes of AllPiecesArr that match PuzzleLetter
+        //indexes of AllPiecesMap that match PuzzleLetter
         TArray<int32> IndexArr;
 
         //@@@@ I already build this in each PuzzleUnit.  Should just copy TArray
 
         //loop all pieces, match PuzzleLetter
-        for (int32 i = 0; i < AllPiecesArr.Num(); i++) {
-            if (AllPiecesArr[i]->Table_Address.PuzzleLetter == PuzzleLetter) {
+
+        for (auto& MapObject : AllPiecesMap) {
+
+            //condense
+            UPiece* Piece = MapObject.Value;
+
+            if (Piece->Table_Address.PuzzleLetter = PuzzleLetter) {
                 //put indexes into IndexArr
-                IndexArr.Emplace(i);
+                IndexArr.Emplace(MapObject.Key);
             }
         }
 
@@ -394,7 +419,7 @@ void UPieceMaker::RandomizeBinPlacement()
             int32 RandInt = FMath::RandRange(0, IndexArr.Num() - 1);
 
             //condense
-            auto& Piece = AllPiecesArr[IndexArr[RandInt]];
+            UPiece* Piece = AllPiecesMap[IndexArr[RandInt]];
 
             //piece info
             Piece->Table_Address.Col = col;
@@ -446,7 +471,7 @@ void UPieceMaker::RandomizeBinPlacement()
 //
 //    for (int32 i = 0; i < 21; i++) {
 //
-//        APiece* OnePiece = NewObject<APiece>(GameInstance, APiece::StaticClass());
+//        UPiece* OnePiece = NewObject<UPiece>(GameInstance, UPiece::StaticClass());
 //
 //        OnePiece->Shape = TRI6;
 //        OnePiece->State = ONGRID;
@@ -455,7 +480,7 @@ void UPieceMaker::RandomizeBinPlacement()
 //        OnePiece->Table_Address.Tri = FMath::RandRange(1, 6);
 //        OnePiece->Table_Address.Board = GRID;
 //
-//        GameInstance->AllPiecesArr.Emplace(OnePiece);
+//        GameInstance->AllPiecesMap.Emplace(OnePiece);
 //
 //        row++;
 //
@@ -474,7 +499,7 @@ void UPieceMaker::RandomizeBinPlacement()
 //
 //    //for (int32 i = 0; i < 126; i++) {
 //
-//    //    APiece* OnePiece = NewObject<APiece>(GameInstance, APiece::StaticClass());
+//    //    UPiece* OnePiece = NewObject<UPiece>(GameInstance, UPiece::StaticClass());
 //
 //    //    OnePiece->Shape = TRI1;
 //    //    OnePiece->State = ONGRID;
@@ -483,7 +508,7 @@ void UPieceMaker::RandomizeBinPlacement()
 //    //    OnePiece->Table_Address.Tri = tri;
 //    //    OnePiece->Table_Address.Board = GRID;
 //
-//    //    Hub->GameInstance->AllPiecesArr.Emplace(OnePiece);
+//    //    Hub->GameInstance->AllPiecesMap.Emplace(OnePiece);
 //
 //    //    tri++;
 //
@@ -513,23 +538,31 @@ void UPieceMaker::BuildFullAndRandomlyCutPieces()
     //condense
     TMap<TEnumAsByte <E_PuzzleLetter>, FPuzzleUnit>& PuzzleMap = GameInstance->PuzzleMap;
 
-    for (auto& Puzzle : PuzzleMap) {
+    //initialize pID
+    int32 pIDcount = 1;
+
+    for (auto& MapObject : PuzzleMap) {
 
         //skip pJUNCTION
-        if (Puzzle.Key == pJUNCTION) {
+        if (MapObject.Key == pJUNCTION) {
             continue;
         }
 
-        //UE_LOG(LogTemp, Warning, TEXT("Puzzle, should be 13 of these +1...."))
+        //condense
+        FPuzzleUnit* Puzzle = &MapObject.Value;
 
+        //initialize
         int32 HexCapacity = 6;
-        int32 colsize = Puzzle.Value.PuzzleGridWidth; 
-        int32 rowsize = Puzzle.Value.PuzzleGridHeight;
+        int32 colsize = Puzzle->PuzzleGridWidth; 
+        int32 rowsize = Puzzle->PuzzleGridHeight;
+        int32 RowLimit = rowsize * 2;
         int32 col = 1;
-        int32 row = 2;  //odd colums start at 2
-        int32 tri = 1;
+        int32 row = 2;  /* odd colums start at 2 */
+        int32 tri = 1;  
 
-        //@@@@ Need to figure out how to start with a random tri
+/* Give random spin to start the tri. Correct for this later down this function. */
+        const int32 RandSpinInt = FMath::RandRange(1, 6);
+        tri = RandSpinInt;
 
         //calculate iteration of puzzle spaces
         int32 FullGridIteration = colsize * rowsize * 6;
@@ -537,32 +570,31 @@ void UPieceMaker::BuildFullAndRandomlyCutPieces()
         //iterate through full grid size
         for (int32 i = 0; i < FullGridIteration; /* No iteration here*/  ) {
 
-            //UE_LOG(LogTemp, Warning, TEXT("col: %i, row: %i, tri: %i"), col, row, tri)
-
             //make new piece
-            APiece* OnePiece = NewObject<APiece>(GameInstance, APiece::StaticClass());
+            UPiece* OnePiece = NewObject<UPiece>(GameInstance, UPiece::StaticClass());
+            OnePiece->pID = pIDcount;
+            pIDcount++;
 
             //get rand number based on open spaces of the current Hex
             int32 RandInt = GetRandIntBasedOnHexCapacity(HexCapacity);
 
-            //UE_LOG(LogTemp, Warning, TEXT("RandInt: %i"), RandInt)
-                //UE_LOG(LogTemp, Warning, TEXT("---"))
-
+            //set basic info
             OnePiece->Shape = GetShape(RandInt);
             OnePiece->State = ONGRID;
 
-            // Home Table_Address
-            OnePiece->HomeTable_Address.PuzzleLetter = Puzzle.Key;
+            //Home Table_Address
+            OnePiece->HomeTable_Address.PuzzleLetter = MapObject.Key;
             OnePiece->HomeTable_Address.Col = col;
             OnePiece->HomeTable_Address.Row = row;
             OnePiece->HomeTable_Address.Tri = tri;
             OnePiece->HomeTable_Address.Board = GRID;
 
             //add ptr to all Array
-            GameInstance->AllPiecesArr.Emplace(OnePiece);
+            GameInstance->AllPiecesMap.Emplace(OnePiece->pID, OnePiece);
 
-            //add ptr to puzzle array
-            Puzzle.Value.HomePiecesArray.Emplace(OnePiece);
+            //add ptr to home puzzle arrays
+            Puzzle->HomePiecesArray.Emplace(OnePiece);
+            Puzzle->HomePiecesArray_ID.Emplace(OnePiece->pID);
 
             //adds randint to tri, to keep proper tri value
             tri += RandInt;
@@ -578,14 +610,14 @@ void UPieceMaker::BuildFullAndRandomlyCutPieces()
             //iterate i according to piece made
             i += RandInt;
 
-            //reset tri, iterate row
-            if (tri == 7) {
-                tri = 1;
+            //reset tri after a full spin, iterate row
+            if (tri == 6 + RandSpinInt) {
+                tri = RandSpinInt;
                 row += 2;
             }
 
-            //reset row
-            if (row >= 7) {
+            //reset row     
+            if (row > RowLimit) {
 
                 //iterate col
                 col++;
@@ -601,15 +633,35 @@ void UPieceMaker::BuildFullAndRandomlyCutPieces()
             }
         }
     }
+
+/* Pieces are built.  Now, we need to correct for tris above 6 */
+
+    //loop pieces
+    for (auto& Piece : GameInstance->AllPiecesMap) {
+
+        //if piece tri is too large
+        if (Piece.Value->HomeTable_Address.Tri > 6) {
+            Piece.Value->HomeTable_Address.Tri -= 6;
+        }
+    }
 }
 
 void UPieceMaker::CreateClusters()
 {
+    //get unique id for clusters, 0 means no id set
+    int32 cIDcount = 1;
 
-    for (auto& Piece : GameInstance->AllPiecesArr) {
+    for (auto& MapObject : GameInstance->AllPiecesMap) {
+
+        //condense
+        UPiece* Piece = MapObject.Value;
 
         //make new cluster
-        ACluster* NewCluster = NewObject<ACluster>(GameInstance, ACluster::StaticClass());
+        UCluster* NewCluster = NewObject<UCluster>(GameInstance, UCluster::StaticClass());
+
+        //get unique ID
+        NewCluster->cID = cIDcount;
+        cIDcount++;
 
         //link piece to cluster
         Piece->ClusterPtr = NewCluster;
@@ -622,17 +674,20 @@ void UPieceMaker::CreateClusters()
         NewCluster->HeldPieces.Emplace(Piece);
 
         //store cluster
-        GameInstance->AllClustersArr.Emplace(NewCluster);
+        GameInstance->AllClustersMap.Emplace(NewCluster->cID, NewCluster);
 
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Amount of clusters: %i"), GameInstance->AllClustersArr.Num())
+    UE_LOG(LogTemp, Warning, TEXT("Amount of clusters: %i"), GameInstance->AllClustersMap.Num())
 }
 
 void UPieceMaker::FillJoinMaps()
 {
     //loop pieces
-    for (auto& Piece : GameInstance->AllPiecesArr) {
+    for (auto& MapObject : GameInstance->AllPiecesMap) {
+
+        //condense
+        UPiece* Piece = MapObject.Value;
 
         //condense
         TEnumAsByte <E_PuzzleLetter> PuzzleLetter = Piece->HomeTable_Address.PuzzleLetter;
@@ -643,14 +698,16 @@ void UPieceMaker::FillJoinMaps()
 
         int32 tricount = GetCountOfTris(Piece->Shape);
 
+/* First, we fill these arrays with pieces from adjacent hexes*/
+
         //items to fill
-        TArray<APiece*> ThisHexArray;
-        TArray<APiece*> UpHexArray;
-        TArray<APiece*> UpLeftHexArray;
-        TArray<APiece*> UpRightHexArray;
-        TArray<APiece*> DownHexArray;
-        TArray<APiece*> DownLeftHexArray;
-        TArray<APiece*> DownRightHexArray;
+        TArray<UPiece*> ThisHexArray;
+        TArray<UPiece*> UpHexArray;
+        TArray<UPiece*> UpLeftHexArray;
+        TArray<UPiece*> UpRightHexArray;
+        TArray<UPiece*> DownHexArray;
+        TArray<UPiece*> DownLeftHexArray;
+        TArray<UPiece*> DownRightHexArray;
 
         //loop pieces that are part of this puzzle
         for (auto& OtherPiece : Puzzle.HomePiecesArray) {
@@ -764,6 +821,9 @@ void UPieceMaker::FillJoinMaps()
         FJoinUnit DownLeftUnit = FJoinUnit();
         FJoinUnit DownRightUnit = FJoinUnit();
 
+/* Now, we loop through the pieces in those hexes, starting at different tris, according to the 
+    direction we are looking.  Ultimately, we are trying to get the piece and its segment, with the TriRunner. */
+
         //UpUnit
         if (UpHexArray.Num() != 0) {
 
@@ -771,15 +831,15 @@ void UPieceMaker::FillJoinMaps()
             int32 TriRunner = 1;
             int32 SegmentCount = 1;
 
-            while (!UpUnit.PiecePtr) {
+            //while no piece linked yet
+            while (UpUnit.Piece_ID == 0) {
 
                 //loop UpHexArray
                 for (auto& PossiblePiece : UpHexArray) {
 
                     //match
                     if (PossiblePiece->HomeTable_Address.Tri == TriRunner) {
-                        
-                        UpUnit.PiecePtr = PossiblePiece;
+                        UpUnit.Piece_ID = PossiblePiece->pID;
                         UpUnit.Segment = GetSegment(SegmentCount);
                         break;
                     }
@@ -806,14 +866,15 @@ void UPieceMaker::FillJoinMaps()
             int32 TriRunner = 2;
             int32 SegmentCount = 1;
 
-            while (!UpLeftUnit.PiecePtr) {
+            //while no piece linked yet
+            while (UpLeftUnit.Piece_ID == 0) {
 
                 //loop UpLeftHexArray
                 for (auto& PossiblePiece : UpLeftHexArray) {
 
                     //match
                     if (PossiblePiece->HomeTable_Address.Tri == TriRunner) {
-                        UpLeftUnit.PiecePtr = PossiblePiece;
+                        UpLeftUnit.Piece_ID = PossiblePiece->pID;
                         UpLeftUnit.Segment = GetSegment(SegmentCount);
                         break;
                     }
@@ -840,15 +901,15 @@ void UPieceMaker::FillJoinMaps()
             int32 TriRunner = 6;
             int32 SegmentCount = 1;
 
-
-            while (!UpRightUnit.PiecePtr) {
+            //while no piece linked yet
+            while (UpRightUnit.Piece_ID == 0) {
 
                 //loop UpRightHexArray
                 for (auto& PossiblePiece : UpRightHexArray) {
 
                     //match
                     if (PossiblePiece->HomeTable_Address.Tri == TriRunner) {
-                        UpRightUnit.PiecePtr = PossiblePiece;
+                        UpRightUnit.Piece_ID = PossiblePiece->pID;
                         UpRightUnit.Segment = GetSegment(SegmentCount);
                         break;
                     }
@@ -875,15 +936,15 @@ void UPieceMaker::FillJoinMaps()
             int32 TriRunner = 4;
             int32 SegmentCount = 1;
 
-
-            while (!DownUnit.PiecePtr) {
+            //while no piece linked yet
+            while (DownUnit.Piece_ID == 0) {
 
                 //loop DownHexArray
                 for (auto& PossiblePiece : DownHexArray) {
 
                     //match
                     if (PossiblePiece->HomeTable_Address.Tri == TriRunner) {
-                        DownUnit.PiecePtr = PossiblePiece;
+                        DownUnit.Piece_ID = PossiblePiece->pID;
                         DownUnit.Segment = GetSegment(SegmentCount);
                         break;
                     }
@@ -910,14 +971,15 @@ void UPieceMaker::FillJoinMaps()
             int32 TriRunner = 3;
             int32 SegmentCount = 1;
 
-            while (!DownLeftUnit.PiecePtr) {
+            //while no piece linked yet
+            while (DownLeftUnit.Piece_ID == 0) {
 
                 //loop DownLeftHexArray
                 for (auto& PossiblePiece : DownLeftHexArray) {
 
                     //match
                     if (PossiblePiece->HomeTable_Address.Tri == TriRunner) {
-                        DownLeftUnit.PiecePtr = PossiblePiece;
+                        DownLeftUnit.Piece_ID = PossiblePiece->pID;
                         DownLeftUnit.Segment = GetSegment(SegmentCount);
                         break;
                     }
@@ -944,14 +1006,15 @@ void UPieceMaker::FillJoinMaps()
             int32 TriRunner = 5;
             int32 SegmentCount = 1;
 
-            while (!DownRightUnit.PiecePtr) {
+            //while no piece linked yet
+            while (DownRightUnit.Piece_ID == 0) {
 
                 //loop DownRightHexArray
                 for (auto& PossiblePiece : DownRightHexArray) {
 
                     //match
                     if (PossiblePiece->HomeTable_Address.Tri == TriRunner) {
-                        DownRightUnit.PiecePtr = PossiblePiece;
+                        DownRightUnit.Piece_ID = PossiblePiece->pID;
                         DownRightUnit.Segment = GetSegment(SegmentCount);
                         break;
                     }
@@ -982,7 +1045,7 @@ void UPieceMaker::FillJoinMaps()
             FJoinUnit HighUnit = FindJoinUnit_High(Tri + tricount, ThisHexArray);
 
             //doubles check
-            if (LowUnit.PiecePtr == HighUnit.PiecePtr) {
+            if (LowUnit.Piece_ID == HighUnit.Piece_ID) {
                 Piece->JoinMap.Emplace(jLOW, LowUnit);
             }
             else {
@@ -990,6 +1053,9 @@ void UPieceMaker::FillJoinMaps()
                 Piece->JoinMap.Emplace(jHIGH, HighUnit);
             }
         }
+
+/* Now, we have the proper piece and segments in the JoinUnits, in up to 6 directions.  Based on the shape
+    of the piece, and the JoinUnits made, we place the JoinUnits into each pieces' JoinMap */
 
     // FIND TRIs
 
@@ -1002,32 +1068,32 @@ void UPieceMaker::FillJoinMaps()
             Piece->Shape == TRI6 ) {
             
             if (Tri == 1) {
-                if (DownUnit.PiecePtr) {
+                if (DownUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI1, DownUnit);
                 }
             }
             if (Tri == 2) {
-                if (DownRightUnit.PiecePtr) {
+                if (DownRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI1, DownRightUnit);
                 }
             }
             if (Tri == 3) {
-                if (UpRightUnit.PiecePtr) {
+                if (UpRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI1, UpRightUnit);
                 }
             }
             if (Tri == 4) {
-                if (UpUnit.PiecePtr) {
+                if (UpUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI1, UpUnit);
                 }
             }
             if (Tri == 5) {
-                if (UpLeftUnit.PiecePtr) {
+                if (UpLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI1, UpLeftUnit);
                 }
             }
             if (Tri == 6) {
-                if (DownLeftUnit.PiecePtr) {
+                if (DownLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI1, DownLeftUnit);
                 }
             }
@@ -1041,32 +1107,32 @@ void UPieceMaker::FillJoinMaps()
             Piece->Shape == TRI6) {
 
             if (Tri == 1) {
-                if (DownRightUnit.PiecePtr) {
+                if (DownRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI2, DownRightUnit);
                 }
             }
             if (Tri == 2) {
-                if (UpRightUnit.PiecePtr) {
+                if (UpRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI2, UpRightUnit);
                 }
             }
             if (Tri == 3) {
-                if (UpUnit.PiecePtr) {
+                if (UpUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI2, UpUnit);
                 }
             }
             if (Tri == 4) {
-                if (UpLeftUnit.PiecePtr) {
+                if (UpLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI2, UpLeftUnit);
                 }
             }
             if (Tri == 5) {
-                if (DownLeftUnit.PiecePtr) {
+                if (DownLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI2, DownLeftUnit);
                 }
             }
             if (Tri == 6) {
-                if (DownUnit.PiecePtr) {
+                if (DownUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI2, DownUnit);
                 }
             }
@@ -1079,32 +1145,32 @@ void UPieceMaker::FillJoinMaps()
             Piece->Shape == TRI6) {
 
             if (Tri == 1) {
-                if (UpRightUnit.PiecePtr) {
+                if (UpRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI3, UpRightUnit);
                 }
             }
             if (Tri == 2) {
-                if (UpUnit.PiecePtr) {
+                if (UpUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI3, UpUnit);
                 }
             }
             if (Tri == 3) {
-                if (UpLeftUnit.PiecePtr) {
+                if (UpLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI3, UpLeftUnit);
                 }
             }
             if (Tri == 4) {
-                if (DownLeftUnit.PiecePtr) {
+                if (DownLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI3, DownLeftUnit);
                 }
             }
             if (Tri == 5) {
-                if (DownUnit.PiecePtr) {
+                if (DownUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI3, DownUnit);
                 }
             }
             if (Tri == 6) {
-                if (DownRightUnit.PiecePtr) {
+                if (DownRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI3, DownRightUnit);
                 }
             }
@@ -1116,32 +1182,32 @@ void UPieceMaker::FillJoinMaps()
             Piece->Shape == TRI6) {
 
             if (Tri == 1) {
-                if (UpUnit.PiecePtr) {
+                if (UpUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI4, UpUnit);
                 }
             }
             if (Tri == 2) {
-                if (UpLeftUnit.PiecePtr) {
+                if (UpLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI4, UpLeftUnit);
                 }
             }
             if (Tri == 3) {
-                if (DownLeftUnit.PiecePtr) {
+                if (DownLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI4, DownLeftUnit);
                 }
             }
             if (Tri == 4) {
-                if (DownUnit.PiecePtr) {
+                if (DownUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI4, DownUnit);
                 }
             }
             if (Tri == 5) {
-                if (DownRightUnit.PiecePtr) {
+                if (DownRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI4, DownRightUnit);
                 }
             }
             if (Tri == 6) {
-                if (UpRightUnit.PiecePtr) {
+                if (UpRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI4, UpRightUnit);
                 }
             }
@@ -1152,32 +1218,32 @@ void UPieceMaker::FillJoinMaps()
             Piece->Shape == TRI6) {
 
             if (Tri == 1) {
-                if (UpLeftUnit.PiecePtr) {
+                if (UpLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI5, UpLeftUnit);
                 }
             }
             if (Tri == 2) {
-                if (DownLeftUnit.PiecePtr) {
+                if (DownLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI5, DownLeftUnit);
                 }
             }
             if (Tri == 3) {
-                if (DownUnit.PiecePtr) {
+                if (DownUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI5, DownUnit);
                 }
             }
             if (Tri == 4) {
-                if (DownRightUnit.PiecePtr) {
+                if (DownRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI5, DownRightUnit);
                 }
             }
             if (Tri == 5) {
-                if (UpRightUnit.PiecePtr) {
+                if (UpRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI5, UpRightUnit);
                 }
             }
             if (Tri == 6) {
-                if (UpUnit.PiecePtr) {
+                if (UpUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI5, UpUnit);
                 }
             }
@@ -1187,32 +1253,32 @@ void UPieceMaker::FillJoinMaps()
         if (Piece->Shape == TRI6) {
 
             if (Tri == 1) {
-                if (DownLeftUnit.PiecePtr) {
+                if (DownLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI6, DownLeftUnit);  
                 }
             }
             if (Tri == 2) {
-                if (DownUnit.PiecePtr) {
+                if (DownUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI6, DownUnit);
                 }
             }
             if (Tri == 3) {
-                if (DownRightUnit.PiecePtr) {
+                if (DownRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI6, DownRightUnit);
                 }
             }
             if (Tri == 4) {
-                if (UpRightUnit.PiecePtr) {
+                if (UpRightUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI6, UpRightUnit);
                 }
             }
             if (Tri == 5) {
-                if (UpUnit.PiecePtr) {
+                if (UpUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI6, UpUnit);
                 }
             }
             if (Tri == 6) {
-                if (UpLeftUnit.PiecePtr) {
+                if (UpLeftUnit.Piece_ID != 0) {
                     Piece->JoinMap.Emplace(jTRI6, UpLeftUnit);
                 }
             }

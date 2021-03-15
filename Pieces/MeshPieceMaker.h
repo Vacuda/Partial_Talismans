@@ -5,12 +5,14 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "Talismans/Structs/FPuzzleUnit.h"			// for FPuzzleUnit
-#include "Talismans/Enums/E_PieceShape.h"		// for E_PieceShape
+#include "Talismans/Enums/E_PieceShape.h"			// for E_PieceShape
+#include "Talismans/Enums/E_GridSize.h"				// for E_GridSize
 #include "MeshPieceMaker.generated.h"
 
-class AMeshPiece;
+class AActorPiece;
 class UMaterialInterface;
 class UTexture;
+class UCluster;
 class UHub;
 
 
@@ -27,23 +29,25 @@ public:
 //SETUP
 
 	void CatchTheHub(UHub* _Hub);
-	void FindMeshPieceStaticMeshes();
+	void FindActorPieceMeshes();
+	UStaticMesh* FindPieceMesh(FString Name);
+	USkeletalMesh* FindItemPieceMesh(FString Name);
 
 
 //GATHER INFO
 
 	void GetCountOfTris(TEnumAsByte <E_PieceShape> Shape, int32* tricount);
-	UStaticMesh* GetProperStaticMesh(TEnumAsByte <E_PieceShape> Shape);
-	FVector GetLocationFromBinSocketCode(FName SocketCode);
-	FVector GetLocationFromGridSocketCode(FName SocketCode);
+
 
 
 //CHANGE INFO
 
-	void SpawnGridMeshPieces();
-	void SpawnBinMeshPieces();
-	void SetMeshPieceTexture(AMeshPiece* MeshPiece, FPuzzleUnit& Puzzle);
-	void DestroyBinMeshPieces();
+	void SpawnActorPieces();
+	void SetActorPieceTexture(AActorPiece* ActorPiece, FPuzzleUnit& Puzzle);
+	void SpawnProperGridMesh();
+	FVector GetGridLocationDueToGridSize(TEnumAsByte<E_GridSize> GridSize);
+	void SpawnTransferSackDroppedCluster(UCluster* Cluster, float TimeToDelay);
+
 
 
 //MEMBERS - SETUP
@@ -51,24 +55,11 @@ public:
 
 	UPROPERTY()
 		UHub* Hub;
+	UPROPERTY()
+		TMap<TEnumAsByte<E_PieceShape>, TSoftObjectPtr<UStaticMesh>> StaticMeshMap;
+	UPROPERTY()
+		TMap<TEnumAsByte<E_PieceShape>, TSoftObjectPtr<USkeletalMesh>> SkeletalMeshMap;
 
-
-//MEMBERS - PIECES
-
-	UPROPERTY()
-		UTexture* Texture;
-
-	UPROPERTY()
-		UStaticMesh* SM_tri1;
-	UPROPERTY()
-		UStaticMesh* SM_tri2;
-	UPROPERTY()
-		UStaticMesh* SM_tri3;
-	UPROPERTY()
-		UStaticMesh* SM_tri4;
-	UPROPERTY()
-		UStaticMesh* SM_tri5;
-	UPROPERTY()
-		UStaticMesh* SM_tri6;
 
 };
+

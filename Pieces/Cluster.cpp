@@ -3,10 +3,10 @@
 
 #include "Cluster.h"
 #include "Talismans/Pieces/Piece.h"							// for Piece
-#include "Talismans/Pieces/MeshCluster.h"					// for MeshCluster
+#include "Talismans/Pieces/ActorCluster.h"					// for ActorCluster
 
 
-ACluster::ACluster()
+UCluster::UCluster()
 {
 	
 }

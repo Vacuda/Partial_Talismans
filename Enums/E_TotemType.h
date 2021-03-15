@@ -12,6 +12,7 @@ enum E_TotemType
     tTABLE                      UMETA(DisplayName = "tTABLE"),
     tJUNCTION                   UMETA(DisplayName = "tJUNCTION"),
     tVESSEL                     UMETA(DisplayName = "tVESSEL"),
-    tFINALE                     UMETA(DisplayName = "tFINALE")
+    tFINALE                     UMETA(DisplayName = "tFINALE"),
+    tDOOR                       UMETA(DisplayName = "tDOOR")
 
 };

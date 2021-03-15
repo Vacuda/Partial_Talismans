@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Talismans/Structs/FTable_Address.h"			// for FTable_Address
 #include "Talismans/Enums/E_Segment.h"					// for E_Segment
-#include "Talismans/Pieces/Piece.h"						// for APiece
+#include "Talismans/Pieces/Piece.h"						// for UPiece
 #include "Engine/DataTable.h"
 #include "FTriangleUnit.generated.h"
 
@@ -29,13 +29,14 @@ struct FTriangleUnit
 		bool bIsCemented = false;
 
 	UPROPERTY()
-		APiece* PiecePtr = nullptr;
+		UPiece* PiecePtr = nullptr;
+
+	//0 means no id
+	UPROPERTY()
+		int32 Piece_ID = 0;
 
 	UPROPERTY()
 		TEnumAsByte <E_Segment> Segment = SEGNONE;
 
 
-
-
-	
 };

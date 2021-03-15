@@ -30,7 +30,6 @@ public:
 	void FindThePuzzleLevel();
 	void FindThePawnCursor();
 	void FindTheBinMesh();
-	void FindTheGridMesh();
 	void FindTheTableLightMaterial();
 	void FindThePuzzleGridHeightAndWidth();
 	void FindTheStartingTable_Address();

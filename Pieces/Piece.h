@@ -9,13 +9,13 @@
 #include "Talismans/Structs/FTable_Address.h"				// for FTable_Address
 #include "Talismans/Structs/FRoom_Address.h"				// for FRoom_Address
 #include "Talismans/Pieces/Cluster.h"						// for Cluster
-#include "Talismans/Pieces/MeshPiece.h"						// for MeshPiece
+#include "Talismans/Pieces/ActorPiece.h"					// for ActorPiece
 #include "Talismans/Enums/E_JoinSite.h"						// for E_JoinSite
 #include "Talismans/Structs/FJoinUnit.h"					// for JoinUnit
 #include "Piece.generated.h"
 
 UCLASS()
-class TALISMANS_API APiece : public AActor
+class TALISMANS_API UPiece : public UObject
 {
 	GENERATED_BODY()
 
@@ -24,9 +24,13 @@ public:
 
 
 
-	APiece();
+	UPiece();
+	bool IsAtHome();
 
+//STANDARD PIECE
 
+	UPROPERTY()
+		int32 pID;
 
 	UPROPERTY()
 		FTable_Address HomeTable_Address;
@@ -39,13 +43,34 @@ public:
 	UPROPERTY()
 		TEnumAsByte <E_PieceShape> Shape;
 	UPROPERTY()
-		ACluster* ClusterPtr = nullptr;
+		UCluster* ClusterPtr = nullptr;
 	UPROPERTY()
-		AMeshPiece* MeshPiecePtr = nullptr;
+		AActorPiece* ActorPiecePtr = nullptr;
 	UPROPERTY()
 		TMap<TEnumAsByte <E_JoinSite> , FJoinUnit> JoinMap;
 
 
-	bool IsAtHome();
+	UPROPERTY()
+		bool bIsItemPiece = false;
+
+
+
+//ITEM PIECE
+
+	UPROPERTY()
+		bool bIsActivated = false;
+
+	UPROPERTY()
+		int32 ActivationRotations = 0;
+
+
+
+
+
+
+	//stored to repopulate ClusterPtr
+	UPROPERTY()
+		int32 Cluster_ID;
+
 
 };
