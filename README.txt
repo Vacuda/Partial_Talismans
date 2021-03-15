@@ -1,12 +1,17 @@
+
+*********
+Talismans
+*********
+
 Hello!
 
-This is a bunch of samples of my C++/UE4 code. (As of 2/12/2021)
+This is a bunch of samples of my C++/UE4 code. (As of 3/15/2021)
 The full project is on a private github.
 
 Notable files are:
 
 BuildWorld/	NewWorldBuild.cpp
-Puzzles/	BinArbiter.cpp
+Puzzles/	BoardArbiter.cpp
 Pawns/		PawnCursor.cpp
 Pieces/		PieceMaker.cpp
 
